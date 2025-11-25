@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Checkout - HighHillsStudio</title>
+    <!-- Bootstrap CSS CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Razorpay Checkout JS -->
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+    <style>
+        .duplicate {
+            border: 2px solid red;
+            background-color: #ffe6e6;
+        }
+    </style>
+
+
+
+</head>
+<body>
+
+<!-- ===== HEADER FRAGMENT ===== -->
+<div th:replace="user/fragments :: mainHeader"></div>
+
+<div class="container mt-5">
+    <h2>Checkout</h2>
+
+    <!-- ================= User Addresses ================= -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h4>Delivery Addresses</h4>
+            <div id="addresses-container">
+                <ul class="list-group">
+                    <li class="list-group-item d-flex justify-content-between align-items-center"
+                        th:each="address : ${addresses}" th:attr="data-id=${address.id}">
+                        <div>
+                            <input type="radio" name="selectedAddress" th:value="${address.id}" th:checked="${address.isDefault}">
+                            <b th:text="${address.line1}"></b>,
+                            <span th:text="${address.line2}"></span>,
+                            <span th:text="${address.city}"></span>,
+                            <span th:text="${address.state}"></span>,
+                            <span th:text="${address.country}"></span>
+                            <br>
+                            <span th:text="${address.pincode}"></span>,
+                            <span th:text="${address.phone}"></span>
+                        </div>
+                        <div>
+                            <button class="btn btn-sm btn-outline-primary set-default-btn"
+                                    th:disabled="${address.isDefault}"
+                                    th:text="${address.isDefault} ? 'Default' : 'Set Default'"></button>
+                            <button class="btn btn-sm btn-outline-success edit-address-btn">Edit</button>
+                            <button class="btn btn-sm btn-outline-danger delete-address-btn">Delete</button>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <button class="btn btn-primary mt-3" id="add-new-address-btn">Add New Address</button>
+        </div>
+
+        <!-- ================= Add/Edit Address Form ================= -->
+        <div class="col-md-6">
+            <h4 id="address-form-title">Add / Edit Address</h4>
+            <form id="address-form">
+                <input type="hidden" id="address-id">
+                <div class="mb-2">
+                    <input type="text" id="line1" class="form-control" placeholder="Address Line 1" required>
+                </div>
+                <div class="mb-2">
+                    <input type="text" id="line2" class="form-control" placeholder="Address Line 2">
+                </div>
+                <div class="mb-2">
+                    <input type="text" id="city" class="form-control" placeholder="City" required>
+                </div>
+                <div class="mb-2">
+                    <input type="text" id="state" class="form-control" placeholder="State" required>
+                </div>
+                <div class="mb-2">
+                    <input type="text" id="country" class="form-control" placeholder="Country" required>
+                </div>
+                <div class="mb-2">
+                    <input type="text" id="pincode" class="form-control" placeholder="Pincode" required>
+                </div>
+                <div class="mb-2">
+                    <input type="text" id="phone" class="form-control" placeholder="Phone Number" required>
+                </div>
+                <div id="duplicateMessage" style="color:red; font-size:0.9em; margin-bottom:10px;"></div>
+                <div class="mb-2 form-check">
+                    <input type="checkbox" id="isDefault" class="form-check-input">
+                    <label class="form-check-label" for="isDefault">Set as default</label>
+                </div>
+                <button type="submit" class="btn btn-success">Save Address</button>
+                <button type="button" id="cancel-edit-btn" class="btn btn-secondary">Cancel</button>
+            </form>
+        </div>
+    </div>
+
+
+
+
+
+
+    <!-- ================= Coupon Section ================= -->
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <div class="card p-3 shadow-sm">
+                <h6 class="fw-semibold mb-2">Apply Coupon</h6>
+                <div class="input-group mb-2">
+                    <input type="text" id="couponCode" class="form-control" placeholder="Enter coupon code">
+                    <button class="btn btn-primary" id="applyCouponBtn">Apply</button>
+                    <button class="btn btn-secondary" id="removeCouponBtn" style="display:none;">Remove</button>
+                </div>
+                <div id="couponMessage" class="text-danger"></div>
+            </div>
+        </div>
+    </div>
+
+
+
+
+    <!-- ================= Wallet Section ================= -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card p-3 shadow-sm">
+                <h5 class="fw-semibold mb-2">
+                    <i class="bi bi-wallet2"></i> Wallet Balance
+                </h5>
+
+                <div class="d-flex justify-content-between">
+                    <span>Available Wallet Balance:</span>
+                    <span class="fw-bold text-success">₹ <span th:text="${walletBalance}"></span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+
+
+
+
+    <!-- ================= Cart Summary ================= -->
+    <div class="row">
+        <div class="col-md-12">
+            <h4>Cart Summary</h4>
+            <table class="table table-bordered">
+                <thead>
+                <tr>
+                    <th>Image</th>
+                    <th>Product</th>
+                    <th>Quantity</th>
+                    <th>Base Price</th>
+
+                    <th>Applied Offer</th> <!-- NEW -->
+
+                    <th>Discount</th>
+                    <th>Total</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="item : ${cartSummary.items}">
+                    <td><img th:src="@{${item.imageUrl}}" width="60" alt="Product Image"></td>
+                    <td th:text="${item.productName}"></td>
+                    <td th:text="${item.quantity}"></td>
+                    <td th:text="${item.basePrice}"></td>
+                    <td th:text="${item.appliedOfferType != null && item.appliedOfferType != 'None'
+                          ? item.appliedOfferType + ' (₹' + item.bestOfferDiscount + ')'
+                          : 'No Offer'}"></td>
+
+                    <td th:text="${item.discountPercentage + '%'}"></td>
+                    <td th:text="${item.totalPrice}"></td>
+                </tr>
+                </tbody>
+                <tfoot>
+                <tr>
+                    <th colspan="6">Subtotal</th>
+                    <th th:text="${cartSummary.subtotal}"></th>
+                </tr>
+<!--                <tr th:if="${!#lists.isEmpty(cartSummary.items)}">-->
+<!--                    <th colspan="5">Shipping</th>-->
+<!--                    <th th:text="${cartSummary.shipping}"></th>-->
+<!--                </tr>-->
+
+                <!-- ✅ Show shipping only if subtotal < 1500 -->
+                <tr th:if="${cartSummary.subtotal < 1500}">
+                    <th colspan="6">Shipping</th>
+                    <th th:text="${cartSummary.shipping}"></th>
+                </tr>
+
+                <tr th:if="${cartSummary.couponDiscount != null and cartSummary.couponDiscount > 0}">
+                    <th colspan="5" class="text-success">Coupon Discount</th>
+                    <th class="text-success">-<span th:text="${cartSummary.couponDiscount}"></span></th>
+                </tr>
+                <tr th:if="${!#lists.isEmpty(cartSummary.items)}">
+                    <th colspan="5">Final Total</th>
+                    <th th:text="${cartSummary.finalTotal}"></th>
+                </tr>
+                </tfoot>
+            </table>
+
+            <!-- Proceed to Payment -->
+            <div class="text-end mt-3" th:if="${!#lists.isEmpty(cartSummary.items)}">
+                <button type="button" class="btn btn-primary btn-lg" id="proceedToPaymentBtn"
+                        th:attr="data-order-code=${orderCode}">
+                    <i class="bi bi-arrow-right-circle"></i> Proceed to Payment
+                </button>
+            </div>
+
+
+        </div>
+    </div>
+</div>
+
+<!-- ===== FOOTER FRAGMENT ===== -->
+<div th:replace="user/fragments :: footer"></div>
+
+<!-- Bootstrap JS CDN -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- ================= JS Scripts ================= -->
+<script>
+
+    const addressForm = document.getElementById('address-form');
+ const cancelEditBtn = document.getElementById('cancel-edit-btn');
+ const addNewAddressBtn = document.getElementById('add-new-address-btn');
+ const proceedToPaymentBtn = document.getElementById('proceedToPaymentBtn');
+ const applyBtn = document.getElementById('applyCouponBtn');
+ const removeBtn = document.getElementById('removeCouponBtn');
+ const couponInput = document.getElementById('couponCode');
+ const messageEl = document.getElementById('couponMessage');
+ const totalEl = document.querySelector('tfoot tr:last-child th:last-child'); // final total cell
+ let originalTotal = parseFloat(totalEl.textContent.replace(/[^0-9.-]+/g,"")); // remove currency symbols
+
+ // ------------------- Address Functions -------------------
+async function checkDuplicateAddress() {
+    const line1El = document.getElementById('line1');
+    const line2El = document.getElementById('line2');
+    const phoneEl = document.getElementById('phone');
+    const messageEl = document.getElementById('duplicateMessage');
+
+    const line1 = line1El.value.trim();
+    const line2 = line2El.value.trim();
+    const phone = phoneEl.value.trim();
+
+    // Remove previous duplicate effects
+    [line1El, line2El, phoneEl].forEach(el => el.classList.remove('duplicate'));
+    messageEl.textContent = '';
+
+    if (!line1 || !phone) return false;
+
+    // Call backend API
+    const url = `/check-duplicate-address?line1=${encodeURIComponent(line1)}&line2=${encodeURIComponent(line2)}&phone=${encodeURIComponent(phone)}`;
+    const res = await fetch(url);
+    const isDuplicate = await res.json();
+
+    if (isDuplicate) {
+        // Highlight only relevant fields
+        line1El.classList.add('duplicate');
+        phoneEl.classList.add('duplicate');
+        if (line2) line2El.classList.add('duplicate');
+
+        messageEl.textContent = 'Duplicate address detected for Line1, Line2, or Phone.';
+        return true;
+    }
+
+    return false;
+}
+
+// Attach blur event only to the relevant fields
+['line1', 'line2', 'phone'].forEach(id => {
+    document.getElementById(id).addEventListener('blur', checkDuplicateAddress);
+});
+
+// Prevent form submission if duplicate
+document.getElementById('address-form').addEventListener('submit', async (e) => {
+    if (await checkDuplicateAddress()) {
+        e.preventDefault();
+    }
+});
+
+
+ // Add/Edit Address Submission
+ addressForm.addEventListener('submit', async (e) => {
+     e.preventDefault();
+     const isDuplicate = await checkDuplicateAddress();
+     if (isDuplicate) return;
+
+     const addressData = {
+         id: document.getElementById('address-id').value || null,
+         line1: document.getElementById('line1').value,
+         line2: document.getElementById('line2').value,
+         city: document.getElementById('city').value,
+         state: document.getElementById('state').value,
+         country: document.getElementById('country').value,
+         pincode: document.getElementById('pincode').value,
+         phone: document.getElementById('phone').value,
+         isDefault: document.getElementById('isDefault').checked
+     };
+
+     const res = await fetch('/checkout/addresses/save', {
+         method: 'POST',
+         headers: {'Content-Type': 'application/json'},
+         body: JSON.stringify(addressData)
+     });
+     const result = await res.json();
+     if (result.success) location.reload();
+     else alert(result.message);
+ });
+
+ // Cancel Edit
+ cancelEditBtn.addEventListener('click', () => {
+     addressForm.reset();
+     document.getElementById('address-id').value = '';
+ });
+
+ // Add New Address button
+ addNewAddressBtn.addEventListener('click', () => {
+     addressForm.reset();
+     document.getElementById('address-id').value = '';
+ });
+
+ // Address list buttons
+ document.querySelectorAll('#addresses-container li').forEach(li => {
+     const setDefaultBtn = li.querySelector('.set-default-btn');
+     const deleteBtn = li.querySelector('.delete-address-btn');
+     const editBtn = li.querySelector('.edit-address-btn');
+
+     // Set default
+     setDefaultBtn.addEventListener('click', async () => {
+         const res = await fetch('/checkout/addresses/default', {
+             method: 'POST',
+             headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+             body: `addressId=${li.dataset.id}`
+         });
+         const result = await res.json();
+         if (result.success) location.reload();
+         else alert(result.message);
+     });
+
+     // Delete
+     deleteBtn.addEventListener('click', async () => {
+         if (!confirm('Are you sure you want to delete this address?')) return;
+         const res = await fetch(`/checkout/addresses/${li.dataset.id}`, {method: 'DELETE'});
+         const result = await res.json();
+         if (result.success) location.reload();
+         else alert(result.message);
+     });
+
+     // Edit
+     editBtn.addEventListener('click', () => {
+         document.getElementById('address-id').value = li.dataset.id;
+         document.getElementById('line1').value = li.querySelector('b').innerText;
+         document.getElementById('line2').value = li.querySelector('span:nth-of-type(1)').innerText;
+         document.getElementById('city').value = li.querySelector('span:nth-of-type(2)').innerText;
+         document.getElementById('state').value = li.querySelector('span:nth-of-type(3)').innerText;
+         document.getElementById('country').value = li.querySelector('span:nth-of-type(4)').innerText;
+         document.getElementById('pincode').value = li.querySelector('span:nth-of-type(5)').innerText;
+         document.getElementById('phone').value = li.querySelector('span:nth-of-type(6)').innerText;
+         document.getElementById('isDefault').checked = setDefaultBtn.disabled;
+     });
+ });
+
+ // ------------------- Proceed to Payment -------------------
+ proceedToPaymentBtn.addEventListener('click', () => {
+     const orderCode = proceedToPaymentBtn.getAttribute('data-order-code');
+     const selectedAddress = document.querySelector('input[name="selectedAddress"]:checked');
+     if (!selectedAddress) {
+         alert('Please select a shipping address.');
+         return;
+     }
+     const addressId = selectedAddress.value;
+     window.location.href = `/users/payment/${orderCode}?addressId=${addressId}`;
+ });
+
+ // ------------------- Coupon Functions -------------------
+ applyBtn.addEventListener('click', async () => {
+     const code = couponInput.value.trim();
+     if (!code) {
+         messageEl.textContent = "Please enter a coupon code.";
+         return;
+     }
+     const res = await fetch(`/checkout/apply-coupon?code=${encodeURIComponent(code)}&total=${originalTotal}`, {
+         method: 'POST'
+     });
+     const result = await res.json();
+     if (result.success) {
+         const discountRow = document.createElement('tr');
+         discountRow.id = "couponDiscountRow";
+         discountRow.innerHTML = `
+             <th colspan="5" class="text-success">Coupon Discount</th>
+             <th class="text-success">- ₹${(originalTotal - result.discountedTotal).toFixed(2)}</th>
+         `;
+         const finalRow = totalEl.closest('tr');
+         finalRow.parentNode.insertBefore(discountRow, finalRow);
+
+         totalEl.textContent = result.discountedTotal.toFixed(2);
+         messageEl.textContent = "Coupon applied successfully!";
+         applyBtn.style.display = 'none';
+         removeBtn.style.display = 'inline-block';
+     } else {
+         messageEl.textContent = result.message;
+     }
+ });
+
+ removeBtn.addEventListener('click', async () => {
+     const res = await fetch(`/checkout/remove-coupon?total=${originalTotal}`, { method: 'POST' });
+     const result = await res.json();
+     if (result.success) {
+         totalEl.textContent = result.resetTotal.toFixed(2);
+         const discountRow = document.getElementById("couponDiscountRow");
+         if (discountRow) discountRow.remove();
+         messageEl.textContent = "";
+         applyBtn.style.display = 'inline-block';
+         removeBtn.style.display = 'none';
+         couponInput.value = "";
+     }
+ });
+
+</script>
+
+</body>
+</html>
+
+
+
+

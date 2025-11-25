@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin - Users</title>
+<!--  <link rel="stylesheet" th:href="@{/css/bootstrap.min.css}">-->
+<!--  <script th:src="@{/js/bootstrap.bundle.min.js}"></script>-->
+
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      background-color: #fff;
+    }
+
+    h2 {
+      margin-top: 120px;
+      font-weight: bold;
+    }
+    .content {
+      margin-top: 30px;
+      width: 90%;
+      max-width: 1100px;
+    }
+    .table {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+<!--<header>-->
+<!--  HIGH HILLS <span>STUDIO</span>-->
+<!--</header>-->
+
+<h2>User Management</h2>
+
+<div class="content">
+
+  <!-- Search Form -->
+  <form th:action="@{/admin/users}" method="get" class="row g-3 mb-3">
+    <div class="col-auto">
+      <input type="text" name="keyword" th:value="${keyword}" class="form-control"
+             placeholder="Search by name or email">
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-primary">Search</button>
+      <a th:href="@{/admin/users}" class="btn btn-secondary">Clear</a>
+    </div>
+  </form>
+
+  <!-- Users Table -->
+  <table class="table table-bordered table-hover table-striped">
+    <thead class="table-dark">
+    <tr>
+      <th>ID</th>
+      <th>Name</th>
+      <th>Email</th>
+      <th>Gender</th>
+      <th>Role</th>
+      <th>Blocked</th>
+      <th>Created At</th>
+      <th>Action</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="user : ${usersPage.content}">
+      <td th:text="${user.id}"></td>
+      <td th:text="${user.fullName}"></td>
+      <td th:text="${user.email}"></td>
+      <td th:text="${user.userGender != null ? user.userGender.name : '—'}"></td>
+      <td th:text="${user.role}"></td>
+      <td>
+        <span th:if="${user.blocked}" class="badge bg-danger">Blocked</span>
+        <span th:if="${!user.blocked}" class="badge bg-success">Active</span>
+      </td>
+      <td th:text="${user.createdAt != null ? #temporals.format(user.createdAt, 'dd-MM-yyyy HH:mm') : '—'}"></td>
+      <td>
+        <form th:if="${!user.blocked}" th:action="@{/admin/users/{id}/block(id=${user.id})}"
+              method="post" style="display:inline; margin-right:5px;">
+          <button type="submit" class="btn btn-sm btn-warning"
+                  onclick="return confirm('Are you sure to block this user?')">Block</button>
+        </form>
+        <form th:if="${user.blocked}" th:action="@{/admin/users/{id}/unblock(id=${user.id})}"
+              method="post" style="display:inline;">
+          <button type="submit" class="btn btn-sm btn-success"
+                  onclick="return confirm('Are you sure to unblock this user?')">Unblock</button>
+        </form>
+      </td>
+    </tr>
+
+    <!-- Empty state -->
+    <tr th:if="${usersPage.content.isEmpty()}">
+      <td colspan="8" class="text-center text-muted">No users found</td>
+    </tr>
+    </tbody>
+  </table>
+
+  <!-- Pagination -->
+  <nav>
+    <ul class="pagination">
+      <li class="page-item" th:classappend="${usersPage.first} ? 'disabled'">
+        <a class="page-link"
+           th:href="@{/admin/users(page=${usersPage.number - 1}, keyword=${keyword})}">Previous</a>
+      </li>
+      <li class="page-item" th:each="i : ${#numbers.sequence(0, usersPage.totalPages -1)}"
+          th:classappend="${usersPage.number == i} ? 'active'">
+        <a class="page-link"
+           th:href="@{/admin/users(page=${i}, keyword=${keyword})}"
+           th:text="${i + 1}">1</a>
+      </li>
+      <li class="page-item" th:classappend="${usersPage.last} ? 'disabled'">
+        <a class="page-link"
+           th:href="@{/admin/users(page=${usersPage.number + 1}, keyword=${keyword})}">Next</a>
+      </li>
+    </ul>
+  </nav>
+
+</div>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!--<!DOCTYPE html>-->
+<!--<html xmlns:th="http://www.thymeleaf.org">-->
+<!--<head>-->
+<!--  <meta charset="UTF-8">-->
+<!--  <title>Admin - Users</title>-->
+<!--  <link rel="stylesheet" th:href="@{/css/bootstrap.min.css}">-->
+<!--  <script th:src="@{/js/bootstrap.bundle.min.js}"></script>-->
+<!--</head>-->
+<!--<body>-->
+<!--<div class="container mt-4">-->
+<!--  <h2>Users Management</h2>-->
+
+<!--  &lt;!&ndash; Search Form &ndash;&gt;-->
+<!--  <form th:action="@{/admin/users}" method="get" class="row g-3 mb-3">-->
+<!--    <div class="col-auto">-->
+<!--      <input type="text" name="keyword" th:value="${keyword}" class="form-control" placeholder="Search by name or email">-->
+<!--    </div>-->
+<!--    <div class="col-auto">-->
+<!--      <button type="submit" class="btn btn-primary">Search</button>-->
+<!--      <a th:href="@{/admin/users}" class="btn btn-secondary">Clear</a>-->
+<!--    </div>-->
+<!--  </form>-->
+
+<!--  &lt;!&ndash; Users Table &ndash;&gt;-->
+<!--  <table class="table table-bordered table-hover table-striped">-->
+<!--    <thead class="table-dark">-->
+<!--    <tr>-->
+<!--      <th>ID</th>-->
+<!--      <th>Name</th>-->
+<!--      <th>Email</th>-->
+<!--      <th>Gender</th>-->
+<!--      <th>Role</th>-->
+<!--      <th>Blocked</th>-->
+<!--      <th>Created At</th>-->
+<!--      <th>Action</th>-->
+<!--    </tr>-->
+<!--    </thead>-->
+<!--    <tbody>-->
+<!--    <tr th:each="user : ${usersPage.content}">-->
+<!--      <td th:text="${user.id}"></td>-->
+<!--      <td th:text="${user.fullName}"></td>-->
+<!--      <td th:text="${user.email}"></td>-->
+<!--&lt;!&ndash;      <td th:text="${user.userGender.name}"></td>&ndash;&gt;-->
+<!--      <td th:text="${user.userGender != null ? user.userGender.name : '—'}"></td>-->
+<!--      <td th:text="${user.role}"></td>-->
+<!--      <td>-->
+<!--        <span th:if="${user.blocked}" class="badge bg-danger">Blocked</span>-->
+<!--        <span th:if="${!user.blocked}" class="badge bg-success">Active</span>-->
+<!--      </td>-->
+<!--&lt;!&ndash;      <td th:text="${user.createdAt != null ? #dates.format(user.createdAt, 'dd-MM-yyyy HH:mm') : '—'}"></td>&ndash;&gt;-->
+<!--      <td th:text="${user.createdAt != null ? #temporals.format(user.createdAt, 'dd-MM-yyyy HH:mm') : '—'}"></td>-->
+
+<!--      <td>-->
+<!--        <form th:if="${!user.blocked}" th:action="@{/admin/users/{id}/block(id=${user.id})}" method="post" style="display:inline; margin-right:5px;">-->
+<!--          <button type="submit" class="btn btn-sm btn-warning" onclick="return confirm('Are you sure to block this user?')">Block</button>-->
+<!--        </form>-->
+<!--        <form th:if="${user.blocked}" th:action="@{/admin/users/{id}/unblock(id=${user.id})}" method="post" style="display:inline;">-->
+<!--          <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Are you sure to unblock this user?')">Unblock</button>-->
+<!--        </form>-->
+<!--      </td>-->
+<!--    </tr>-->
+
+<!--    &lt;!&ndash; Empty state &ndash;&gt;-->
+<!--    <tr th:if="${usersPage.content.isEmpty()}">-->
+<!--      <td colspan="8" class="text-center text-muted">No users found</td>-->
+<!--    </tr>-->
+<!--    </tbody>-->
+<!--  </table>-->
+
+
+<!--  &lt;!&ndash; Pagination &ndash;&gt;-->
+<!--  <nav>-->
+<!--    <ul class="pagination">-->
+<!--      <li class="page-item" th:classappend="${usersPage.first} ? 'disabled'">-->
+<!--        <a class="page-link" th:href="@{/admin/users(page=${usersPage.number - 1}, keyword=${keyword})}">Previous</a>-->
+<!--      </li>-->
+<!--      <li class="page-item" th:each="i : ${#numbers.sequence(0, usersPage.totalPages -1)}"-->
+<!--          th:classappend="${usersPage.number == i} ? 'active'">-->
+<!--        <a class="page-link" th:href="@{/admin/users(page=${i}, keyword=${keyword})}" th:text="${i + 1}">1</a>-->
+<!--      </li>-->
+<!--      <li class="page-item" th:classappend="${usersPage.last} ? 'disabled'">-->
+<!--        <a class="page-link" th:href="@{/admin/users(page=${usersPage.number + 1}, keyword=${keyword})}">Next</a>-->
+<!--      </li>-->
+<!--    </ul>-->
+<!--  </nav>-->
+
+<!--</div>-->
+<!--</body>-->
+<!--</html>-->

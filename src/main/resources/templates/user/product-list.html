@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Products</title>
+
+    <!-- ✅ Bootstrap CSS CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- ✅ Bootstrap Icons CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+
+    <style>
+        /* Pagination styling */
+        .pagination li { display:inline-block; margin:2px; }
+        .pagination li.active a { font-weight:bold; }
+
+        /* Category styling */
+         .category-list li { display:inline-block; margin-right:15px; }
+        .category-list li a {
+            text-decoration: none;   /* remove underline */
+            color: #000;             /* black text */
+            font-weight: 500;
+        }
+         .category-list li a:hover {
+            color: #555;             /* dark gray on hover */
+        }
+        .filter-input {
+            height: 45px;  /* ✅ makes all inputs & select same height */
+        }
+
+
+
+
+        /* Product card styling */
+        .product-card {
+            margin-bottom: 25px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            border-radius: 12px;
+        }
+        .product-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.18);
+        }
+        .product-card img {
+            object-fit: contain;       /* ✅ full image visible */
+            height: 320px;             /* ✅ bigger image */
+            width: 100%;
+            padding: 12px;
+            border-radius: 12px 12px 0 0;
+            background: #f8f9fa;
+        }
+        .product-card h5 {
+            font-size: 1.1rem;         /* bigger title */
+            margin-top: 8px;
+            font-weight: 600;
+        }
+        .product-card .card-text {
+            font-size: 1rem;
+        }
+    </style>
+</head>
+<body class="bg-light">
+
+<!-- ===== HEADER FRAGMENT ===== -->
+<div th:replace="user/fragments :: mainHeader"></div>
+
+<div class="container my-4">
+    <h1 class="mb-4">Products</h1>
+
+    <!-- Categories -->
+    <ul class="category-list">
+        <li th:each="category : ${categories}" th:classappend="${selectedCategoryId} == ${category.id} ? 'active'">
+            <a th:href="@{/products(categoryId=${category.id})}" th:text="${category.name}"></a>
+        </li>
+        <li th:classappend="${selectedCategoryId} == null ? 'active'">
+            <a th:href="@{/products}">View All Products</a>
+        </li>
+    </ul>
+
+    <hr>
+
+    <!-- Filters -->
+<!--    <div class="mb-3">-->
+<!--        <input type="text" id="keyword" placeholder="Search Products">-->
+<!--        <input type="number" id="minPrice" placeholder="Min Price" step="0.01">-->
+<!--        <input type="number" id="maxPrice" placeholder="Max Price" step="0.01">-->
+<!--        <select id="sort">-->
+<!--            <option value="">Sort</option>-->
+<!--            <option value="priceLowHigh">Price: Low → High</option>-->
+<!--            <option value="priceHighLow">Price: High → Low</option>-->
+<!--            <option value="nameAZ">Name: A → Z</option>-->
+<!--            <option value="nameZA">Name: Z → A</option>-->
+<!--        </select>-->
+<!--        <button class="btn btn-primary btn-sm" onclick="loadProducts()">Apply</button>-->
+<!--        <button type="button" id="clearFilters" class="btn btn-secondary btn-sm">Clear</button>-->
+<!--    </div>-->
+
+    <div class="row g-2 mb-3">
+        <!-- Search -->
+        <div class="col-md-3">
+            <input type="text" id="keyword" class="form-control filter-input" placeholder="Search Products">
+        </div>
+
+        <!-- Min Price -->
+        <div class="col-md-3">
+            <input type="number" id="minPrice" class="form-control filter-input" placeholder="Min Price" step="0.01">
+        </div>
+
+        <!-- Max Price -->
+        <div class="col-md-3">
+            <input type="number" id="maxPrice" class="form-control filter-input" placeholder="Max Price" step="0.01">
+        </div>
+
+        <!-- Sort -->
+        <div class="col-md-3">
+            <select id="sort" class="form-select filter-input">
+                <option value="">Sort</option>
+                <option value="priceLowHigh">Price: Low → High</option>
+                <option value="priceHighLow">Price: High → Low</option>
+                <option value="nameAZ">Name: A → Z</option>
+                <option value="nameZA">Name: Z → A</option>
+            </select>
+        </div>
+
+        <!-- Buttons -->
+        <div class="col-12 d-flex gap-2 mt-2">
+            <button class="btn btn-primary btn-sm" onclick="loadProducts()">Apply</button>
+            <button type="button" id="clearFilters" class="btn btn-secondary btn-sm">Clear</button>
+        </div>
+    </div>
+
+
+    <hr>
+<!--    ${p.active && !p.inStock ? '<span class="badge bg-warning text-dark">Out of Stock</span>' : ''}-->
+
+    <!-- Products -->
+    <div id="product-list" class="row"></div>
+
+    <!-- Pagination -->
+    <ul id="pagination" class="pagination"></ul>
+</div>
+
+<!-- ===== FOOTER FRAGMENT ===== -->
+<div th:replace="user/fragments :: mainFooter"></div>
+
+<!-- ✅ Bootstrap JS Bundle CDN -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // Get categoryId from URL if present
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlCategoryId = urlParams.get('categoryId') || '';
+
+    let currentPage = 0;
+
+    function loadProducts(page = 0) {
+        currentPage = page;
+        const keyword = document.getElementById('keyword').value || '';
+        const categoryId = urlCategoryId; // always take from URL
+        const minPrice = document.getElementById('minPrice').value || '';
+        const maxPrice = document.getElementById('maxPrice').value || '';
+        const sort = document.getElementById('sort').value || '';
+
+        const params = new URLSearchParams({ page, size: 12, keyword, categoryId, minPrice, maxPrice, sort });
+
+        fetch('/products/fetch?' + params.toString())
+            .then(res => res.json())
+            .then(data => {
+                const productList = document.getElementById('product-list');
+                productList.innerHTML = '';
+
+                if (!data.products || data.products.length === 0) {
+                    productList.innerHTML = '<p>No products found.</p>';
+                } else {
+                    data.products.forEach(p => {
+                        const col = document.createElement('div');
+                        col.classList.add('col-md-4', 'col-sm-6', 'mb-4'); //  bigger cards (3 per row on md)
+
+                        col.innerHTML = `
+                            <div class="card product-card shadow-sm position-relative">
+                             <a href="/products/${p.id}">
+                             <img src="${p.mainImage}" class="card-img-top" onerror="this.src='/images/no-image.png'">
+                                </a>
+
+                                 <!-- Badges -->
+                                  <div class="position-absolute top-0 start-0 m-2">
+                                   ${!p.active ? '<span class="badge bg-danger">Unavailable</span>' : ''}
+
+                                    </div>
+
+                                  <div class="card-body text-center">
+                                   <h5 class="card-title">${p.name}</h5>
+                                    <p class="card-text text-primary fw-bold">₹${p.finalPrice}</p>
+
+
+
+                                            <!-- ✅ Add to Wishlist Button -->
+                                        <button class="btn btn-outline-danger btn-sm"
+                                            onclick="addToWishlist(${p.id})">
+                                            <i class="bi bi-heart"></i> Add to Wishlist
+                                        </button>
+
+
+
+                                    </div>
+                               </div>
+                        `;
+                        productList.appendChild(col);
+                    });
+                }
+
+                // Pagination
+                const pagination = document.getElementById('pagination');
+                pagination.innerHTML = '';
+                for (let i = 0; i < data.totalPages; i++) {
+                    const li = document.createElement('li');
+                    li.classList.add('page-item');
+                    if (i === data.currentPage) li.classList.add('active');
+                    const a = document.createElement('a');
+                    a.classList.add('page-link');
+                    a.href = "#";
+                    a.innerText = i + 1;
+                    a.onclick = (e) => { e.preventDefault(); loadProducts(i); };
+                    li.appendChild(a);
+                    pagination.appendChild(li);
+                }
+            });
+    }
+
+    // Clear filters
+    document.getElementById('clearFilters').addEventListener('click', () => {
+        document.getElementById('keyword').value = '';
+        document.getElementById('minPrice').value = '';
+        document.getElementById('maxPrice').value = '';
+        document.getElementById('sort').value = '';
+        loadProducts(0);
+    });
+
+    // Initial load
+    window.onload = () => loadProducts();
+
+
+
+
+    async function addToWishlist(productId) {
+    try {
+        const response = await fetch(`/wishlist/add/${productId}`, {
+            method: 'POST'
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            alert(data.message || "Added to wishlist!");
+        } else if (response.status === 401) {
+            alert("Please log in to add items to wishlist.");
+            window.location.href = '/login';
+        } else {
+            alert("Failed to add to wishlist.");
+        }
+    } catch (err) {
+        console.error(err);
+        alert("Something went wrong!");
+    }
+}
+
+
+
+
+</script>
+</body>
+</html>
+

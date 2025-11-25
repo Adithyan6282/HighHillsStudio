@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin - Categories</title>
+<!--  <link rel="stylesheet" th:href="@{/css/bootstrap.min.css}">-->
+<!--  <script th:src="@{/js/bootstrap.bundle.min.js}"></script>-->
+
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      background-color: #fff;
+    }
+    h2 {
+      margin-top: 120px;
+      font-weight: bold;
+    }
+    .content {
+      margin-top: 30px;
+      width: 90%;
+      max-width: 1100px;
+    }
+    .table {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+<!--<header>-->
+<!--  HIGH HILLS <span>STUDIO</span>-->
+<!--</header>-->
+
+<h2>Category Management</h2>
+
+<div class="content">
+
+  <!-- Search Form -->
+  <form th:action="@{/admin/categories}" method="get" class="row g-3 mb-3">
+    <div class="col-auto">
+      <input type="text" name="keyword" th:value="${keyword}" class="form-control" placeholder="Search by name">
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-primary">Search</button>
+      <a th:href="@{/admin/categories}" class="btn btn-secondary">Clear</a>
+    </div>
+    <div class="col-auto">
+      <a th:href="@{/admin/categories/new}" class="btn btn-success">+ Add Category</a>
+    </div>
+  </form>
+
+  <!-- Category Table -->
+  <table class="table table-bordered table-hover table-striped">
+    <thead class="table-dark">
+    <tr>
+      <th>ID</th>
+      <th>Name</th>
+      <th>Created At</th>
+      <th>Status</th>
+      <th>Action</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="category : ${categoriesPage.content}">
+      <td th:text="${category.id}"></td>
+      <td th:text="${category.name}"></td>
+      <td th:text="${category.createdAt != null ? #temporals.format(category.createdAt, 'dd-MM-yyyy HH:mm') : '—'}"></td>
+      <td>
+        <span th:if="${category.isActive}" class="badge bg-success">Active</span>
+        <span th:if="${!category.isActive}" class="badge bg-danger">Blocked</span>
+      </td>
+      <td>
+        <a th:href="@{/admin/categories/{id}/edit(id=${category.id})}" class="btn btn-sm btn-warning">Edit</a>
+        <form th:action="@{/admin/categories/{id}/delete(id=${category.id})}" method="post" style="display:inline;">
+          <button type="submit" class="btn btn-sm btn-danger"
+                  onclick="return confirm('Are you sure you want to delete this category?')">Delete</button>
+        </form>
+      </td>
+    </tr>
+
+    <!-- Empty state -->
+    <tr th:if="${categoriesPage.content.isEmpty()}">
+      <td colspan="5" class="text-center text-muted">No categories found</td>
+    </tr>
+    </tbody>
+  </table>
+
+  <!-- Pagination -->
+  <nav>
+    <ul class="pagination">
+      <li class="page-item" th:classappend="${categoriesPage.first} ? 'disabled'">
+        <a class="page-link" th:href="@{/admin/categories(page=${categoriesPage.number - 1}, keyword=${keyword})}">Previous</a>
+      </li>
+      <li class="page-item" th:each="i : ${#numbers.sequence(0, categoriesPage.totalPages -1)}"
+          th:classappend="${categoriesPage.number == i} ? 'active'">
+        <a class="page-link" th:href="@{/admin/categories(page=${i}, keyword=${keyword})}" th:text="${i + 1}">1</a>
+      </li>
+      <li class="page-item" th:classappend="${categoriesPage.last} ? 'disabled'">
+        <a class="page-link" th:href="@{/admin/categories(page=${categoriesPage.number + 1}, keyword=${keyword})}">Next</a>
+      </li>
+    </ul>
+  </nav>
+
+</div>
+</body>
+</html>
+
+
+
+
+
+
+

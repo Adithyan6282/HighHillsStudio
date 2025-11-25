@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title th:text="${product.id != null ? 'Edit Product' : 'Add Product'}">Product Form</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet"/>
+  <style>
+    body { font-family: Arial, sans-serif; background: #fff; }
+    .header { border-bottom: 1px solid #ddd; padding: 15px 30px; font-size: 20px; font-weight: bold; }
+    .header span { font-weight: normal; color: gray; margin-left: 5px; }
+    .container-box { max-width: 900px; margin: 40px auto; padding: 30px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); background: white; }
+    .form-label { font-weight: 600; }
+    #previewContainer img, .existing-image img { height: 120px; margin: 5px; border-radius: 6px; border: 1px solid #ddd; }
+    .remove-image-btn { position: absolute; top: 2px; right: 2px; background: red; color: white; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 14px; font-weight: bold; cursor: pointer; line-height: 18px; }
+    .existing-image { position: relative; display: inline-block; margin: 5px; }
+    .row-fit { margin-bottom: 10px; }
+    .required:after {
+    content: " *";
+    color: red;
+    }
+    .is-invalid {
+    border-color: red;
+    }
+    .is-invalid:focus {
+    box-shadow: 0 0 0 0.2rem rgba(255,0,0,.25);
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  HIGH HILLS <span>STUDIO</span>
+</div>
+
+<div class="container-box">
+  <h3 class="text-center mb-4" th:text="${product.id != null ? 'Edit Product' : 'Add New Product'}"></h3>
+
+  <form id="productForm" th:action="@{/admin/products/save}" th:object="${product}" method="post" enctype="multipart/form-data" novalidate>
+    <input type="hidden" th:field="*{id}"/>
+
+    <!-- Product Name -->
+    <div class="mb-3">
+      <label class="form-label required">Product Name</label>
+      <input type="text" th:field="*{name}" class="form-control" id="productName" placeholder="Enter product name" required>
+    </div>
+
+    <!-- Description -->
+    <div class="mb-3">
+      <label class="form-label">Description</label>
+      <textarea th:field="*{description}" class="form-control" rows="3" placeholder="Product description"></textarea>
+    </div>
+
+    <!-- Price & Discount -->
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label class="form-label required">Base Price</label>
+        <input type="number" th:field="*{basePrice}" class="form-control" placeholder="Enter price" required>
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label required">Discount (%)</label>
+        <input type="number" th:field="*{discountPercentage}" class="form-control" placeholder="Enter discount">
+      </div>
+    </div>
+
+    <!-- Dropdowns -->
+    <div class="row">
+      <div class="col-md-4 mb-3">
+        <label class="form-label required">Category</label>
+        <select id="category" th:field="*{category.id}" class="form-select" required>
+          <option value="">-- Select Category --</option>
+<!--          <option value="" disabled>&#45;&#45; Select Category &#45;&#45;</option>-->
+          <option th:each="cat : ${categories}"
+                  th:value="${cat.id}"
+                  th:text="${cat.name}"
+                  th:selected="${product.category != null} ? ${cat.id} == ${product.category.id} : false">
+          </option>
+        </select>
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <label class="form-label required">Product Type</label>
+        <select id="productType" th:field="*{productType.id}" class="form-select"
+                th:attr="data-selected=${product.productType != null ? product.productType.id : null}" required>
+          <option value="" disabled>-- Select Product Type --</option>
+        </select>
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <label class="form-label required">Color</label>
+        <select th:field="*{color.id}" class="form-select" required>
+          <option value="">-- Select Color --</option>
+          <option th:each="col : ${colors}" th:value="${col.id}" th:text="${col.name}"></option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Collection & Gender -->
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label class="form-label required">Collection</label>
+        <select th:field="*{collection.id}" class="form-select" required>
+          <option value="">-- Select Collection --</option>
+<!--          <option value="" disabled>&#45;&#45; Select Collection &#45;&#45;</option>-->
+          <option th:each="col : ${collections}" th:value="${col.id}" th:text="${col.name}"></option>
+        </select>
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label required">Gender</label>
+        <select th:field="*{productGender.id}" class="form-select" required>
+          <option value="">-- Select Gender --</option>
+          <option th:each="g : ${genders}" th:value="${g.id}" th:text="${g.name}"></option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Fits & Stock -->
+    <div class="mb-3">
+      <label class="form-label required">Sizes & Stock</label>
+      <div id="fitsContainer"></div>
+      <button type="button" class="btn btn-outline-secondary btn-sm mt-2" id="addFit">+ Add Size</button>
+    </div>
+
+    <!-- Highlights / Specs -->
+    <div class="mb-3">
+      <label for="highlights" class="form-label">Product Highlights / Specs</label>
+      <textarea id="highlights" name="highlights" class="form-control" rows="4"
+                th:text="${product.highlights}"></textarea>
+      <small class="text-muted">Enter each feature in a new line (e.g., 100% Cotton, Slim Fit, etc.)</small>
+    </div>
+
+    <!-- Active Checkbox -->
+    <div class="mb-3 form-check">
+      <input type="checkbox" th:field="*{isActive}" class="form-check-input" id="isActive">
+      <label class="form-check-label" for="isActive">Active</label>
+    </div>
+
+    <!-- Existing Images -->
+    <div class="mb-3">
+      <label class="form-label">Existing Images</label>
+      <div id="existingImages"></div>
+    </div>
+
+    <!-- Upload New Images -->
+    <div class="mb-3">
+      <label class="form-label required">Upload New Images (Min 3)</label>
+      <input type="file" id="imageInput" name="imageFiles" accept="image/*" multiple
+             th:attr="required=${product.id == null}" class="form-control">
+    </div>
+    <div id="previewContainer" class="d-flex flex-wrap"></div>
+
+    <!-- Buttons -->
+    <div class="text-center mt-4">
+      <button type="submit" class="btn btn-primary px-4">Save Product</button>
+      <a th:href="@{/admin/products}" class="btn btn-outline-secondary px-4 ms-2">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+<script>
+  const form = document.getElementById('productForm');
+ const productNameInput = document.getElementById('productName');
+ const imageInput = document.getElementById('imageInput');
+ const preview = document.getElementById('previewContainer');
+ const categorySelect = document.getElementById('category');
+ const typeSelect = document.getElementById('productType');
+ const fitsContainer = document.getElementById('fitsContainer');
+ let croppers = [];
+
+ //  Mandatory fields (except description & highlights)
+ const requiredFields = [
+   'name',
+   'basePrice',
+   'discountPercentage',
+   'category.id',
+   'productType.id',
+   'color.id',
+   'collection.id',
+   'productGender.id',
+   'imageFiles'
+ ];
+
+ // ✅ Remove red border dynamically
+ function setupDynamicValidation() {
+   requiredFields.forEach(fieldId => {
+     const inputs = document.querySelectorAll(`[name="${fieldId}"]`);
+     inputs.forEach(input => {
+       input.removeEventListener('input', removeInvalid);
+       input.removeEventListener('change', removeInvalid);
+       input.addEventListener('input', removeInvalid);
+       input.addEventListener('change', removeInvalid);
+     });
+   });
+ }
+
+ function removeInvalid(e) {
+   e.target.classList.remove('is-invalid');
+ }
+
+ setupDynamicValidation();
+
+ // ✅ Unique check for Product Name
+ productNameInput.addEventListener('blur', () => {
+   const name = productNameInput.value.trim();
+   const productId = document.querySelector('input[name="id"]')?.value || '';
+   if (!name) return;
+
+   fetch(`/admin/products/check-unique?field=name&value=${encodeURIComponent(name)}&id=${productId}`)
+     .then(res => res.json())
+     .then(data => {
+       if (data.exists) {
+         productNameInput.classList.add('is-invalid');
+         alert("⚠️ Product name already exists! Please choose another name.");
+       } else {
+         productNameInput.classList.remove('is-invalid');
+       }
+     })
+     .catch(err => console.error('Unique check failed:', err));
+ });
+
+ // ✅ Load Product Types dynamically
+ function loadProductTypes(categoryId, selectedTypeId = null) {
+   typeSelect.innerHTML = '<option value="" disabled selected>-- Select Product Type --</option>';
+   if (!categoryId) return;
+
+   fetch(`/admin/products/types?categoryId=${categoryId}`)
+     .then(res => res.json())
+     .then(data => {
+       data.forEach(type => {
+         const opt = document.createElement('option');
+         opt.value = type.id;
+         opt.textContent = type.name;
+         if (selectedTypeId && selectedTypeId == type.id) opt.selected = true;
+         typeSelect.appendChild(opt);
+       });
+     })
+     .catch(err => console.error('Error loading product types:', err));
+ }
+
+ categorySelect.addEventListener('change', () => {
+   loadProductTypes(categorySelect.value);
+ });
+
+ // ✅ Image cropper preview
+ imageInput.addEventListener('change', e => {
+   preview.innerHTML = '';
+   croppers = [];
+   [...e.target.files].forEach(file => {
+     if (!file.type.startsWith("image/")) return;
+     const img = document.createElement('img');
+     img.src = URL.createObjectURL(file);
+     img.style.maxWidth = "200px";
+     img.style.margin = "5px";
+     preview.appendChild(img);
+     croppers.push({ cropper: new Cropper(img, { aspectRatio: 1 }), file });
+   });
+ });
+
+ // ✅ Add / Remove Fits
+ document.getElementById('addFit').addEventListener('click', () => {
+   addFitRow("", 0);
+
+ });
+
+ fitsContainer.addEventListener('click', e => {
+   if (e.target.classList.contains('remove-fit')) e.target.closest('.row').remove();
+ });
+
+ function addFitRow(size, quantity) {
+   const row = document.createElement('div');
+   row.className = 'row mb-2';
+   row.innerHTML = `
+     <div class="col">
+       <input type="text" name="sizes" class="form-control" value="${size || ''}" placeholder="Size">
+     </div>
+     <div class="col">
+       <input type="number" name="quantities" class="form-control" value="${quantity ?? 0}" placeholder="Quantity">
+     </div>
+     <div class="col-auto">
+       <button type="button" class="btn btn-danger remove-fit">Remove</button>
+     </div>
+   `;
+   fitsContainer.appendChild(row);
+
+    // ✅ Bind dynamic remove-invalid for the newly added inputs
+  const sizeInput = row.querySelector('input[name="sizes"]');
+  const qtyInput = row.querySelector('input[name="quantities"]');
+
+  sizeInput.addEventListener('input', removeInvalid);
+  qtyInput.addEventListener('input', removeInvalid);
+
+ }
+
+
+
+
+
+
+ // ✅ Remove existing images
+ document.getElementById('existingImages').addEventListener('click', e => {
+   if (e.target.classList.contains('remove-image-btn')) {
+     const div = e.target.closest('.existing-image');
+     div.querySelector('input[type=hidden]')?.remove();
+     div.remove();
+   }
+ });
+
+ // ✅ Prefill edit data
+ document.addEventListener("DOMContentLoaded", () => {
+   const productId = document.querySelector('input[name="id"]')?.value;
+   if (!productId) return;
+
+   fetch(`/admin/products/${productId}/json`)
+     .then(res => res.json())
+     .then(resp => {
+       if (!resp || resp.status !== 'success' || !resp.data) return;
+       const data = resp.data;
+
+       // Prefill fits
+       fitsContainer.innerHTML = "";
+       if (data.fits?.length) {
+         data.fits.forEach(fit => addFitRow(fit.size, fit.quantity));
+         setupDynamicValidation(); // validation for prefilled fits
+       }
+
+       // Prefill existing images
+       const existingImages = document.getElementById("existingImages");
+       existingImages.innerHTML = "";
+       if (data.images?.length) {
+         data.images.forEach(img => {
+           const div = document.createElement("div");
+           div.className = "existing-image";
+           div.innerHTML = `
+             <img src="${img.img}" width="100"/>
+             <input type="hidden" name="existingImageIds" value="${img.id}"/>
+             <button type="button" class="btn btn-danger btn-sm remove-image-btn">Remove</button>
+           `;
+           existingImages.appendChild(div);
+         });
+       }
+
+       if (data.categoryId) {
+         categorySelect.value = data.categoryId;
+         loadProductTypes(data.categoryId, data.productTypeId);
+       }
+       if (data.colorId) document.querySelector('[name="color.id"]').value = data.colorId;
+       if (data.collectionId) document.querySelector('[name="collection.id"]').value = data.collectionId;
+       if (data.productGenderId) document.querySelector('[name="productGender.id"]').value = data.productGenderId;
+     })
+     .catch(err => console.error("Error fetching product data:", err));
+ });
+
+ // ✅ Final form submit handler
+
+  form.addEventListener('submit', e => {
+  e.preventDefault();
+  let valid = true;
+  let errors = [];
+
+  // Validate requiredFields
+  requiredFields.forEach(fieldId => {
+    const inputs = document.querySelectorAll(`[name="${fieldId}"]`);
+    inputs.forEach(input => {
+      let isEmpty = false;
+      if (input.tagName === 'SELECT') isEmpty = input.value === "";
+      else if (input.type === 'checkbox') isEmpty = !input.checked;
+      else isEmpty = !input.value.trim();
+
+      if (isEmpty) {
+        input.classList.add('is-invalid');
+        valid = false;
+        errors.push(`${fieldId} is required`);
+      } else input.classList.remove('is-invalid');
+    });
+  });
+
+  // Discount validation
+  const discountInput = document.querySelector('[name="discountPercentage"]');
+  if (discountInput) {
+    const value = discountInput.value.trim();
+    const num = parseFloat(value);
+    if (value === "" || isNaN(num) || num < 0 || num > 100) {
+      discountInput.classList.add('is-invalid');
+      valid = false;
+      errors.push("Discount (%) must be between 0 and 100");
+    } else discountInput.classList.remove('is-invalid');
+  }
+
+  // Sizes & quantities
+  const sizeInputs = document.querySelectorAll('[name="sizes"]');
+  const quantityInputs = document.querySelectorAll('[name="quantities"]');
+
+  if (sizeInputs.length === 0) {
+    valid = false;
+    errors.push("Add at least one size and quantity");
+  }
+
+  sizeInputs.forEach((input, index) => {
+    const size = input.value.trim();
+    const qty = quantityInputs[index].value.trim();
+    let invalid = false;
+
+    if (!size) { input.classList.add('is-invalid'); invalid = true; }
+    else input.classList.remove('is-invalid');
+
+    if (!qty || isNaN(qty) || parseInt(qty) < 0) { quantityInputs[index].classList.add('is-invalid'); invalid = true; }
+    else quantityInputs[index].classList.remove('is-invalid');
+
+    if (invalid) { valid = false; errors.push(`Invalid size/quantity at row ${index + 1}`); }
+  });
+
+  // Minimum 3 images
+  const totalImages = croppers.length + document.querySelectorAll('#existingImages .existing-image').length;
+  if (totalImages < 3) {
+    valid = false;
+    errors.push("Upload at least 3 images");
+  }
+
+  if (!valid) {
+    alert("⚠️ Please fix the following errors:\n\n" + errors.join("\n"));
+    return;
+  }
+
+  // Submit form
+  const formData = new FormData(form);
+  formData.delete("imageFiles");
+
+  if (croppers.length === 0) {
+    fetch(form.action, { method:'POST', body: formData })
+      .then(res => res.redirected ? window.location.href = res.url : null)
+      .catch(err => console.error(err));
+    return;
+  }
+
+  let processed = 0;
+  croppers.forEach(item => {
+    item.cropper.getCroppedCanvas({ width: 800, height: 800 })
+      .toBlob(blob => {
+        formData.append('imageFiles', blob, item.file.name);
+        processed++;
+        if (processed === croppers.length) {
+          fetch(form.action, { method:'POST', body: formData })
+            .then(res => res.redirected ? window.location.href = res.url : null)
+            .catch(err => console.error(err));
+        }
+      }, 'image/jpeg', 0.9);
+  });
+});
+
+
+
+</script>
+
+</body>
+</html>
+
+
+
+
+
+

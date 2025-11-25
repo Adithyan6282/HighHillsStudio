@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8">
+  <title>Payment Options - HighHillsStudio</title>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+
+  <style>
+    html, body { height: 100%; display: flex; flex-direction: column; }
+    .content { flex: 1; padding-top: 50px; padding-bottom: 50px; }
+    footer { background: #f8f9fa; padding: 20px 0; }
+
+    /* Payment cards */
+    .payment-card {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 1px solid #dee2e6;
+      border-radius: 10px;
+      padding: 20px 25px;
+      margin: 15px 0;
+      transition: all 0.3s ease;
+      background-color: #fff;
+    }
+    .payment-card:hover {
+      box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+      transform: translateY(-3px);
+    }
+
+    /* Icon style */
+    .payment-card i {
+      font-size: 2rem;
+      margin-right: 15px;
+      color: #333;
+    }
+
+    /* Button style */
+    .payment-card button {
+      min-width: 150px;
+      border-radius: 8px;
+      font-weight: 600;
+    }
+
+    /* OR separator */
+    .separator {
+      display: flex;
+      align-items: center;
+      text-align: center;
+      margin: 25px 0;
+      font-weight: bold;
+      color: #888;
+    }
+    .separator::before, .separator::after {
+      content: '';
+      flex: 1;
+      border-bottom: 1px solid #ddd;
+    }
+    .separator:not(:empty)::before { margin-right: .25em; }
+    .separator:not(:empty)::after { margin-left: .25em; }
+
+    /* Center content */
+    .content h2 {
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .content p {
+      font-size: 0.95rem;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 576px) {
+      .payment-card {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .payment-card button {
+        margin-top: 10px;
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===== HEADER FRAGMENT ===== -->
+<div th:replace="user/fragments :: mainHeader"></div>
+
+<div class="container content">
+  <h2 class="text-center">Choose Your Payment Method</h2>
+  <p class="text-center text-muted mb-4">
+    Order Code: <strong th:text="${orderCode}"></strong><br>
+    Selected Address ID: <strong th:text="${addressId}"></strong>
+  </p>
+
+  <!-- Hidden form for online payment -->
+  <form id="paymentForm" th:action="@{/users/payment/success}" method="post">
+    <input type="hidden" name="orderCode" th:value="${orderCode}">
+    <input type="hidden" name="addressId" th:value="${addressId}">
+  </form>
+
+  <!-- ONLINE PAYMENT -->
+  <div class="payment-card">
+    <div class="d-flex align-items-center">
+      <i class="bi bi-credit-card text-primary"></i>
+      <div>
+        <div class="fw-bold">Pay Online</div>
+        <small class="text-muted">Fast & Secure online payment</small>
+      </div>
+    </div>
+    <button id="payOnlineBtn" class="btn btn-primary">Proceed</button>
+  </div>
+
+  <div class="separator">OR</div>
+
+  <!-- WALLET PAYMENT -->
+  <form th:action="@{/checkout/pay-with-wallet}" method="post">
+    <input type="hidden" name="orderCode" th:value="${orderCode}">
+    <input type="hidden" name="addressId" th:value="${addressId}">
+    <div class="payment-card">
+      <div class="d-flex align-items-center">
+        <i class="bi bi-wallet2 text-warning"></i>
+        <div>
+          <div class="fw-bold">Wallet Payment</div>
+          <small class="text-muted">Pay using your wallet balance</small>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-warning">Pay ₹<span th:text="${walletBalance}"></span></button>
+    </div>
+  </form>
+
+  <div class="separator">OR</div>
+
+  <!-- CASH ON DELIVERY -->
+  <form th:action="@{/checkout/place-order}" method="post">
+    <input type="hidden" name="cod" value="true"/>
+    <input type="hidden" name="orderCode" th:value="${orderCode}">
+    <input type="hidden" name="addressId" th:value="${addressId}">
+    <div class="payment-card">
+      <div class="d-flex align-items-center">
+        <i class="bi bi-cash text-success"></i>
+        <div>
+          <div class="fw-bold">Cash on Delivery</div>
+          <small class="text-muted">Pay with cash when you receive the order</small>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-success">Place Order</button>
+    </div>
+  </form>
+</div>
+
+<!-- ===== FOOTER FRAGMENT ===== -->
+<div th:replace="user/fragments :: footer"></div>
+
+<script th:inline="javascript">
+  /*<![CDATA[*/
+  var options = {
+      key: [[${razorpayKey}]],
+      amount: [[${amount}]],
+      currency: 'INR',
+      order_id: [[${orderId}]],
+      name: 'HighHillsStudio',
+      description: 'Order Payment',
+      handler: function(response) {
+          response.orderCode = '[[${orderCode}]]';
+          response.addressId = '[[${addressId}]]';
+          var form = document.getElementById('paymentForm');
+          for (var key in response) {
+              if (response.hasOwnProperty(key)) {
+                  var input = document.createElement('input');
+                  input.type = 'hidden';
+                  input.name = key;
+                  input.value = response[key];
+                  form.appendChild(input);
+              }
+          }
+          form.submit();
+      },
+      modal: {
+          ondismiss: function() {
+              window.location.href = /*[[@{/users/payment/failure(orderCode=${orderCode},addressId=${addressId})}]]*/ '';
+          }
+      },
+      theme: { color: "#3399cc" }
+  };
+
+  document.getElementById('payOnlineBtn').addEventListener('click', function() {
+      var rzp1 = new Razorpay(options);
+      rzp1.open();
+  });
+  /*]]>*/
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+
+
+
+
+
+

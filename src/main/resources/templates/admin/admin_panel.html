@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Panel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div class="container mt-4">
+
+    <h1 class="mb-4">Admin Panel</h1>
+
+    <!-- Filter Section -->
+    <form method="get" th:action="@{/admin/panel}" class="mb-4 row g-3 align-items-end">
+        <div class="col-auto">
+            <label>Filter:</label>
+            <select name="filter" class="form-select" th:value="${filter}">
+                <option value="monthly" th:selected="${filter=='monthly'}">Monthly</option>
+                <option value="yearly" th:selected="${filter=='yearly'}">Yearly</option>
+            </select>
+        </div>
+        <div class="col-auto">
+            <label>Start Date:</label>
+            <input type="date" name="startDate" class="form-control">
+        </div>
+        <div class="col-auto">
+            <label>End Date:</label>
+            <input type="date" name="endDate" class="form-control">
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-primary">Apply</button>
+        </div>
+    </form>
+
+    <!-- Top Products Table -->
+    <h3>Top Products</h3>
+    <table class="table table-bordered table-striped mb-2">
+        <thead class="table-dark">
+        <tr>
+            <th>Product Name</th>
+            <th>Total Sold</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="p : ${topProducts.content}">
+            <td th:text="${p.name}"></td>
+            <td th:text="${p.totalSold}"></td>
+        </tr>
+        </tbody>
+    </table>
+
+    <!-- Pagination for Top Products -->
+    <nav th:if="${topProducts.totalPages > 1}">
+        <ul class="pagination">
+            <li class="page-item" th:classappend="${topProducts.first} ? 'disabled'">
+                <a class="page-link"
+                   th:href="@{/admin/panel(filter=${filter}, productPage=${topProducts.number-1}, productSize=${topProducts.size})}">Previous</a>
+            </li>
+
+            <li class="page-item" th:each="i : ${#numbers.sequence(0, topProducts.totalPages-1)}"
+                th:classappend="${i == topProducts.number} ? 'active'">
+                <a class="page-link"
+                   th:href="@{/admin/panel(filter=${filter}, productPage=${i}, productSize=${topProducts.size})}"
+                   th:text="${i+1}"></a>
+            </li>
+
+            <li class="page-item" th:classappend="${topProducts.last} ? 'disabled'">
+                <a class="page-link"
+                   th:href="@{/admin/panel(filter=${filter}, productPage=${topProducts.number+1}, productSize=${topProducts.size})}">Next</a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Top Categories Table -->
+    <h3>Top Categories</h3>
+    <table class="table table-bordered table-striped mb-2">
+        <thead class="table-dark">
+        <tr>
+            <th>Category Name</th>
+            <th>Total Sold</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="c : ${topCategories.content}">
+            <td th:text="${c.name}"></td>
+            <td th:text="${c.totalSold}"></td>
+        </tr>
+        </tbody>
+    </table>
+
+    <!-- Pagination for Top Categories -->
+    <nav th:if="${topCategories.totalPages > 1}">
+        <ul class="pagination">
+            <li class="page-item" th:classappend="${topCategories.first} ? 'disabled'">
+                <a class="page-link"
+                   th:href="@{/admin/panel(filter=${filter}, categoryPage=${topCategories.number-1}, categorySize=${topCategories.size})}">Previous</a>
+            </li>
+
+            <li class="page-item" th:each="i : ${#numbers.sequence(0, topCategories.totalPages-1)}"
+                th:classappend="${i == topCategories.number} ? 'active'">
+                <a class="page-link"
+                   th:href="@{/admin/panel(filter=${filter}, categoryPage=${i}, categorySize=${topCategories.size})}"
+                   th:text="${i+1}"></a>
+            </li>
+
+            <li class="page-item" th:classappend="${topCategories.last} ? 'disabled'">
+                <a class="page-link"
+                   th:href="@{/admin/panel(filter=${filter}, categoryPage=${topCategories.number+1}, categorySize=${topCategories.size})}">Next</a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Sales Chart -->
+    <h3>Sales Chart</h3>
+    <canvas id="salesChart" width="100%" height="40"></canvas>
+
+</div>
+
+<script th:inline="javascript">
+    var chartData = /*[[${salesChart}]]*/ [];
+    var labels = chartData.map(d => d.period);
+    var data = chartData.map(d => d.totalSales);
+
+    var ctx = document.getElementById('salesChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Sales',
+                data: data,
+                backgroundColor: 'rgba(54, 162, 235, 0.7)'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: true } },
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+</script>
+</body>
+</html>
+
+
+

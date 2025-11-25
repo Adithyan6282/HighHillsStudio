@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:inline="text">
+<head>
+  <meta charset="UTF-8">
+  <title>User Profile - High Hills Studio</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+
+<!-- Header -->
+<div th:replace="user/fragments :: mainHeader"></div>
+
+
+
+<div class="container my-5">
+  <div class="row">
+
+    <!-- USER DETAILS COLUMN -->
+    <div class="col-md-4">
+      <h4>User Profile</h4>
+      <div class="text-center mb-3">
+        <img th:src="@{${user.profileImage} != null ? '/uploads/profile-images/' + ${user.profileImage} : '/images/default-profile.png'}"
+             class="rounded-circle" style="width: 120px; height: 120px; object-fit: cover;">
+      </div>
+
+      <p><strong>Name:</strong> <span th:text="${user.fullName}"></span></p>
+      <p><strong>Email:</strong> <span th:text="${user.email}"></span></p>
+      <p><strong>Phone:</strong> <span th:text="${user.phone}"></span></p>
+
+      <a th:href="@{/user/profile/edit}" class="btn btn-primary w-100">Edit Profile</a>
+    </div>
+
+
+    <!-- ADDRESS COLUMN -->
+    <div class="col-md-4">
+      <h4>Addresses</h4>
+
+      <ul class="list-group mb-3" id="addressList">
+
+        <li class="list-group-item" th:each="address : ${addresses}" th:data-id="${address.id}">
+          <strong th:text="${address.line1}"></strong><br>
+          <span class="address-line2" th:text="${address.line2}"></span>
+          <span class="address-citystatecountry"
+                th:text="${address.city + ', ' + address.state + ', ' + address.country}"></span>
+          <span class="d-none address-pincode" th:text="${address.pincode}"></span>
+          <span class="d-none address-phone" th:text="${address.phone}"></span>
+
+          <div class="mt-2">
+            <button type="button" class="btn btn-sm btn-primary edit-address">Edit</button>
+            <button type="button" class="btn btn-sm btn-danger delete-address">Delete</button>
+          </div>
+        </li>
+
+        <li th:if="${#lists.isEmpty(addresses)}" class="list-group-item text-center text-muted">
+          No addresses yet.
+        </li>
+      </ul>
+
+      <!-- Address Form -->
+      <h5>Add / Edit Address</h5>
+      <form id="addressForm">
+        <input type="hidden" id="addressId">
+
+        <div class="mb-2"><input type="text" id="line1" placeholder="Address line 1" class="form-control" required></div>
+        <div class="mb-2"><input type="text" id="line2" placeholder="Address line 2" class="form-control"></div>
+        <div class="mb-2"><input type="text" id="city" placeholder="City" class="form-control" required></div>
+        <div class="mb-2"><input type="text" id="state" placeholder="State" class="form-control" required></div>
+        <div class="mb-2"><input type="text" id="country" placeholder="Country" class="form-control" required></div>
+        <div class="mb-2"><input type="text" id="pincode" placeholder="Pincode" class="form-control" required></div>
+        <div class="mb-2"><input type="text" id="phoneAddress" placeholder="Phone" class="form-control" required></div>
+
+        <button type="submit" class="btn btn-success">Save Address</button>
+      </form>
+    </div>
+
+
+    <!-- WALLET + REFERRAL + ORDERS COLUMN -->
+    <div class="col-md-4">
+
+      <!-- Wallet -->
+      <h4>Wallet</h4>
+
+      <div class="card shadow-sm p-3 mb-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <h6 class="mb-0">Available Balance</h6>
+          <h5 class="text-success fw-bold">₹ <span id="walletBalance" th:text="${walletBalance}"></span></h5>
+        </div>
+      </div>
+
+      <h6>Recent Wallet Transactions</h6>
+
+      <ul class="list-group mb-3" id="walletTransactionsList" style="max-height: 250px; overflow-y: auto;">
+        <li class="list-group-item" th:each="tx : ${walletTransactions}">
+          <div class="d-flex justify-content-between">
+            <div>
+              <small th:text="${#temporals.format(tx.transactionDate, 'dd MMM yyyy')}"></small><br>
+              <span th:text="${tx.description}"></span>
+            </div>
+            <div>
+          <span th:text="'₹ ' + ${tx.amount}"
+                th:classappend="${tx.type == 'CREDIT'} ? 'text-success' : 'text-danger'"></span>
+            </div>
+          </div>
+        </li>
+
+        <li th:if="${#lists.isEmpty(walletTransactions)}"
+            class="list-group-item text-center text-muted">
+          No wallet transactions yet.
+        </li>
+      </ul>
+
+      <div class="text-center mb-4">
+        <a th:href="@{/user/wallet}" class="btn btn-outline-primary btn-sm">View Full Wallet</a>
+      </div>
+
+
+      <!-- REFERRAL PROGRAM (FIXED POSITION) -->
+      <div class="card shadow-sm p-3 mb-4">
+        <h5>Referral Program</h5>
+        <p class="text-muted small">Invite your friends & earn rewards!</p>
+
+        <div class="input-group">
+          <input type="text" id="referralLink" class="form-control"
+                 th:value="${referralLink}" readonly>
+          <button class="btn btn-outline-primary" onclick="copyReferral()">Copy</button>
+        </div>
+      </div>
+
+
+
+
+<!--        test-->
+      <!-- REFERRAL COUPONS -->
+      <div class="card shadow-sm p-3 mb-4">
+        <h5>Your Referral Coupons</h5>
+        <p class="text-muted small">Use these coupons earned by inviting friends.</p>
+
+        <ul class="list-group">
+          <!-- Iterate over coupons -->
+          <li class="list-group-item" th:each="coupon : ${coupons}">
+            <strong>Code:</strong> <span th:text="${coupon.code}"></span><br>
+            <strong>Discount:</strong> ₹<span th:text="${coupon.discountAmount}"></span>
+
+            <!-- Copy button -->
+            <button class="btn btn-sm btn-outline-primary float-end"
+                    th:attr="data-coupon=${coupon.code}"
+                    onclick="copyCoupon(this)">
+              Copy
+            </button>
+          </li>
+
+          <!-- If no coupons -->
+          <li th:if="${#lists.isEmpty(coupons)}" class="list-group-item text-center text-muted">
+            No referral coupons yet.
+          </li>
+        </ul>
+      </div>
+
+
+
+    </div> <!-- END RIGHT COLUMN -->
+  </div>
+
+
+
+
+
+  <!-- ORDERS SECTION -->
+  <div class="mt-5 p-4 shadow-sm rounded bg-white">
+
+    <!-- Header Row -->
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h5 class="mb-1 fw-bold">Your Orders</h5>
+        <p class="text-muted small mb-0">
+          Track, return or reorder your past purchases.
+        </p>
+      </div>
+
+      <a th:href="@{/user/profile/orders}" class="btn btn-primary px-4">
+        View All
+      </a>
+    </div>
+  </div>
+
+
+</div>
+
+
+<!-- Footer -->
+<div th:replace="user/fragments :: mainFooter"></div>
+
+<script>
+  // ===== SAVE ADDRESS =====
+  const addressForm = document.getElementById('addressForm');
+  addressForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    const data = {
+      id: document.getElementById('addressId').value || null,
+      line1: document.getElementById('line1').value,
+      line2: document.getElementById('line2').value,
+      city: document.getElementById('city').value,
+      state: document.getElementById('state').value,
+      country: document.getElementById('country').value,
+      pincode: document.getElementById('pincode').value,
+      phone: document.getElementById('phoneAddress').value
+    };
+    const res = await fetch('/user/profile/address/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if(res.ok){ alert('Address saved successfully!'); window.location.reload(); }
+  });
+
+
+  // ===== EDIT ADDRESS =====
+  document.querySelectorAll('.edit-address').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const li = e.target.closest('li');
+      const addressId = li.getAttribute('data-id');
+
+      const line1 = li.querySelector('strong').innerText;
+      const line2 = li.querySelector('.address-line2').innerText;
+      const parts = li.querySelector('.address-citystatecountry').innerText.split(',');
+
+      document.getElementById('addressId').value = addressId;
+      document.getElementById('line1').value = line1;
+      document.getElementById('line2').value = line2;
+      document.getElementById('city').value = parts[0].trim();
+      document.getElementById('state').value = parts[1].trim();
+      document.getElementById('country').value = parts[2].trim();
+      document.getElementById('pincode').value = li.querySelector('.address-pincode').innerText;
+      document.getElementById('phoneAddress').value = li.querySelector('.address-phone').innerText;
+
+      document.getElementById('addressForm').scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+
+
+  // ===== DELETE ADDRESS =====
+  document.querySelectorAll('.delete-address').forEach(btn => {
+    btn.addEventListener('click', async e => {
+      const id = e.target.closest('li').getAttribute('data-id');
+      const res = await fetch(`/user/profile/address/delete/${id}`, { method: 'DELETE' });
+      if(res.ok){ alert('Address deleted!'); window.location.reload(); }
+    });
+  });
+
+
+  // ===== WALLET AUTO REFRESH =====
+  async function updateWallet() {
+    try {
+      const res = await fetch('/wallet/refresh');
+      if (!res.ok) return;
+
+      const data = await res.json();
+
+      document.getElementById('walletBalance').innerText =
+              parseFloat(data.balance).toFixed(2);
+
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  setInterval(updateWallet, 15000);
+  document.addEventListener('DOMContentLoaded', updateWallet);
+
+
+  // ===== COPY REFERRAL LINK =====
+  function copyReferral() {
+    const link = document.getElementById("referralLink");
+    navigator.clipboard.writeText(link.value);
+    alert("Referral link copied!");
+  }
+
+
+function copyCoupon(btn) {
+    const couponCode = btn.dataset.coupon;
+    navigator.clipboard.writeText(couponCode).then(() => {
+        alert("Coupon copied: " + couponCode);
+    });
+}
+
+</script>
+
+</body>
+</html>
+
+

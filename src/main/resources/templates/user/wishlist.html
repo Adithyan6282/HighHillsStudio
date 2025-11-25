@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns="http://www.w3.org/1999/html">
+<head>
+    <meta charset="UTF-8">
+    <title>My Wishlist</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+</head>
+<body class="d-flex flex-column min-vh-100">
+
+<div th:replace="user/fragments :: mainHeader"></div>
+
+<main class="flex-grow-1">
+    <div class="container mt-4">
+        <h2>My Wishlist</h2>
+
+        <div class="row row-cols-1 row-cols-md-3 g-4">
+            <div class="col" th:each="item : ${wishlistItems}">
+                <div class="card h-100 text-center shadow-sm">
+                    <a th:href="@{/products/{id}(id=${item.product.id})}">
+                        <img th:src="${item.product.images != null && !#lists.isEmpty(item.product.images) ? item.product.images[0].img : '/images/no-image.png'}"
+                             class="card-img-top" alt="Product Image" style="height: 250px; object-fit: contain;">
+                    </a>
+                    <div class="card-body">
+                        <h5 class="card-title" th:text="${item.product.name}"></h5>
+                        <p class="card-text">₹<span th:text="${item.product.finalPrice}"></span></p>
+
+                        <!-- ✅ Move to Cart Button -->
+                        <button class="btn btn-primary me-2"
+                                th:onclick="'moveToCart(' + ${item.product.id} + ')'">
+                            Move to Cart
+                        </button>
+
+                        <!-- 🗑 Remove Button -->
+                        <button class="btn btn-outline-danger"
+                                th:onclick="'removeFromWishlist(' + ${item.product.id} + ')'">
+                            Remove
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</main>
+
+<div th:replace="user/fragments :: footer"></div>
+
+<script>
+    // ✅ Remove from Wishlist
+    async function removeFromWishlist(productId) {
+        const response = await fetch('/wishlist/remove/' + productId, {method: 'POST'});
+        if (response.ok) {
+            alert('Removed from wishlist');
+            location.reload();
+        } else {
+            alert('Error removing item');
+        }
+    }
+
+    // ✅ Move to Cart (AJAX)
+    async function moveToCart(productId) {
+        const response = await fetch('/wishlist/move-to-cart/' + productId, {method: 'POST'});
+        const result = await response.json();
+
+        if (result.status === 'success') {
+            alert(result.message);
+            location.reload();
+        } else {
+            alert(result.message || 'Error moving item to cart');
+        }
+    }
+</script>
+
+</body>
+</html>
+
+

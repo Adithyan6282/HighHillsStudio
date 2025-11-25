@@ -1,0 +1,48 @@
+<!-- admin/product-offer/list.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Product Offers</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+
+<div class="container mt-4">
+    <h2>Product Offers</h2>
+    <a th:href="@{/admin/offer/product/add}" class="btn btn-primary mb-2">Add New Product Offer</a>
+
+    <table class="table table-bordered">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Product</th>
+            <th>Offer Name</th>
+            <th>Discount</th>
+            <th>Type</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Status</th>
+            <th>Actions</th>  <!-- Edit/Delete -->
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="offer : ${offers}">
+            <td th:text="${offer.id}"></td>
+            <td th:text="${offer.product.name}"></td> <!-- Product Name -->
+            <td th:text="${offer.name}"></td>
+            <td th:text="${offer.discountAmount}"></td>
+            <td th:text="${offer.percentage ? 'Percentage' : 'Fixed'}"></td>
+            <td th:text="${offer.startDate}"></td>
+            <td th:text="${offer.endDate}"></td>
+            <td th:text="${offer.active ? 'Active' : 'Inactive'}"></td>
+            <td>
+                <a th:href="@{'/admin/offer/product/add?id=' + ${offer.id}}" class="btn btn-sm btn-warning">Edit</a>
+                <a th:href="@{'/admin/offer/product/delete/' + ${offer.id}}" class="btn btn-sm btn-danger">Delete</a>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+</body>
+</html>

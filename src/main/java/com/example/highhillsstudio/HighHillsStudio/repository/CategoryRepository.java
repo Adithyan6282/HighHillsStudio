@@ -1,0 +1,14 @@
+package com.example.highhillsstudio.HighHillsStudio.repository;
+
+import com.example.highhillsstudio.HighHillsStudio.entity.Category;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface CategoryRepository extends JpaRepository<Category, Long> {
+    Page<Category> findByIsActiveTrueAndNameContainingIgnoreCase(String keyword, Pageable pageable);
+
+    Page<Category> findByIsActiveTrue(Pageable pageable);
+}

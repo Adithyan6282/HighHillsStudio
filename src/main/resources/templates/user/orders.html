@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>My Orders - High Hills Studio</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Make pagination scrollable on small screens */
+        .pagination-wrapper {
+            overflow-x: auto;
+        }
+        .pagination {
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body class="d-flex flex-column min-vh-100">
+
+<!-- Header fragment -->
+<div th:replace="user/fragments :: mainHeader"></div>
+
+<div class="container my-5 flex-grow-1">
+    <h3>My Orders</h3>
+
+    <!-- Search form -->
+    <div class="mb-3">
+        <form th:action="@{/user/profile/orders}" method="get" class="d-flex">
+            <input type="text" name="q" placeholder="Search by Order Code"
+                   th:value="${searchQuery}" class="form-control me-2" />
+            <button type="submit" class="btn btn-primary">Search</button>
+            <a th:href="@{/user/profile/orders}" class="btn btn-secondary ms-2">Clear</a>
+        </form>
+    </div>
+
+    <!-- No orders message -->
+    <div th:if="${#lists.isEmpty(ordersPage.content)}">
+        <p class="text-muted">You have not placed any orders yet.</p>
+    </div>
+
+    <!-- Orders list -->
+    <div th:each="order : ${ordersPage.content}" class="card mb-3 shadow-sm">
+        <div class="card-body d-flex justify-content-between align-items-center">
+            <div>
+                <h6>Order <span th:text="${order.orderCode}"></span></h6>
+                <p class="mb-0">Status: <span th:text="${order.status}"></span></p>
+                <p class="mb-0">Total: ₹<span th:text="${order.totalAmount}"></span></p>
+            </div>
+            <a th:href="@{'/user/profile/order/' + ${order.orderCode}}"
+               class="btn btn-outline-primary btn-sm">View Details</a>
+        </div>
+    </div>
+
+    <!-- Pagination controls -->
+    <div class="pagination-wrapper">
+        <nav th:if="${ordersPage.totalPages > 1}">
+            <ul class="pagination justify-content-center">
+
+                <!-- Previous -->
+                <li class="page-item" th:classappend="${ordersPage.first} ? 'disabled'">
+                    <a class="page-link"
+                       th:href="@{/user/profile/orders(page=${ordersPage.number - 1}, size=${ordersPage.size}, q=${searchQuery})}">
+                        Previous
+                    </a>
+                </li>
+
+                <!-- First page -->
+                <li class="page-item" th:if="${ordersPage.number > 2}">
+                    <a class="page-link" th:href="@{/user/profile/orders(page=0, size=${ordersPage.size}, q=${searchQuery})}">1</a>
+                </li>
+                <li class="page-item disabled" th:if="${ordersPage.number > 3}">
+                    <span class="page-link">...</span>
+                </li>
+
+                <!-- Current ±2 pages -->
+                <li class="page-item" th:each="i : ${#numbers.sequence(
+                                            ordersPage.number > 2 ? ordersPage.number - 2 : 0,
+                                            ordersPage.number + 2 < ordersPage.totalPages ? ordersPage.number + 2 : ordersPage.totalPages - 1)}"
+                    th:classappend="${i == ordersPage.number} ? 'active'">
+                    <a class="page-link"
+                       th:href="@{/user/profile/orders(page=${i}, size=${ordersPage.size}, q=${searchQuery})}"
+                       th:text="${i + 1}">1</a>
+                </li>
+
+                <!-- Last page -->
+                <li class="page-item disabled" th:if="${ordersPage.number + 2 < ordersPage.totalPages - 1}">
+                    <span class="page-link">...</span>
+                </li>
+                <li class="page-item" th:if="${ordersPage.number + 2 < ordersPage.totalPages}">
+                    <a class="page-link"
+                       th:href="@{/user/profile/orders(page=${ordersPage.totalPages - 1}, size=${ordersPage.size}, q=${searchQuery})}"
+                       th:text="${ordersPage.totalPages}"></a>
+                </li>
+
+                <!-- Next -->
+                <li class="page-item" th:classappend="${ordersPage.last} ? 'disabled'">
+                    <a class="page-link"
+                       th:href="@{/user/profile/orders(page=${ordersPage.number + 1}, size=${ordersPage.size}, q=${searchQuery})}">
+                        Next
+                    </a>
+                </li>
+
+            </ul>
+        </nav>
+    </div>
+
+</div>
+
+<!-- Footer fragment -->
+<div th:replace="user/fragments :: mainFooter"></div>
+
+</body>
+</html>
+
